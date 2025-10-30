@@ -103,6 +103,29 @@ class MusicGenServer:
             "stabilityai/sdxl-turbo", torch_dtype=torch.float16, variant="fp16", cache_dir="/.cache/huggingface")
         self.image_pipe.to("cuda")
 
+    def prompt_qwen(self, question: str):
+        messages = [
+            {"role": "user", "content": question}
+        ]
+        text = self.tokenizer.apply_chat_template(
+            messages,
+            tokenize=False,
+            add_generation_prompt=True
+        )
+        model_inputs = self.tokenizer(
+            [text], return_tensors="pt").to(self.llm_model.device)
+
+        generated_ids = self.llm_model.generate(
+            model_inputs.input_ids,
+            max_new_tokens=512
+        )
+        generated_ids = [
+            output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
+        ]
+
+        response = self.tokenizer.batch_decode(
+            generated_ids, skip_special_tokens=True)[0]
+
     def generate_prompt(self, description: str):
         # Insert description into template
         full_prompt = PROMPT_GENERATOR_PROMPT.format(user_prompt=description)
