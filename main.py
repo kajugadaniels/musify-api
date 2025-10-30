@@ -57,7 +57,10 @@ class MusicGenServer:
             cache_dir="/.cache/huggingface"
         )
 
-        
+        # Stable Diffusion Model (thumbnails)
+        self.image_pipe = AutoPipelineForText2Image.from_pretrained(
+            "stabilityai/sdxl-turbo", torch_dtype=torch.float16, variant="fp16", cache_dir="/.cache/huggingface")
+        self.image_pipe.to("cuda")
 
 @app.local_entrypoint()
 
