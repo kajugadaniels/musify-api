@@ -1,7 +1,8 @@
-import base64
 import os
 import uuid
 import modal
+import base64
+from pydantic import BaseModel
 
 app = modal.App("musify")
 
@@ -22,6 +23,9 @@ model_volume = modal.Volume.from_name(
 hf_volume = modal.Volume.from_name("qwen-hf-cache", create_if_missing=True)
 
 music_gen_secrets = modal.Secret.from_name("music-gen-secret")
+
+class GenerateMusicResponse(BaseModel):
+    audio_data: str
 
 @app.cls(
     image=image,
@@ -65,7 +69,7 @@ class MusicGenServer:
         self.image_pipe.to("cuda")
 
     @modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)
-    def generate(self):
+    def generate(self) -> GenerateMusicResponse:
         output_dir = "/tmp/outputs"
         os.makedirs(output_dir, exist_ok=True)
         output_path = os.path.join(output_dir, f"{uuid.uuid4()}.wav")
@@ -85,6 +89,8 @@ class MusicGenServer:
         audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
 
         os.remove(output_path)
+
+        return GenerateMusicResponse(audio_data=audio_b64)
 
 @app.local_entrypoint()
 
