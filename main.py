@@ -46,6 +46,17 @@ class MusicGenServer:
             overlapped_decode=False
         )
 
+        # Large Language Model
+        model_id = "Qwen/Qwen2-7B-Instruct"
+        self.tokenizer = AutoTokenizer.from_pretrained(model_id)
+
+        self.llm_model = AutoModelForCausalLM.from_pretrained(
+            model_id,
+            torch_dtype="auto",
+            device_map="auto",
+            cache_dir="/.cache/huggingface"
+        )
+
         
 
 @app.local_entrypoint()
