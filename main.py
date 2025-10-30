@@ -6,7 +6,7 @@ import base64
 from pydantic import BaseModel
 import requests
 
-from api.prompts import PROMPT_GENERATOR_PROMPT
+from api.prompts import LYRICS_GENERATOR_PROMPT, PROMPT_GENERATOR_PROMPT
 
 app = modal.App("musify")
 
@@ -129,6 +129,13 @@ class MusicGenServer:
     def generate_prompt(self, description: str):
         # Insert description into template
         full_prompt = PROMPT_GENERATOR_PROMPT.format(user_prompt=description)
+
+        # Run LLM inference and return that
+        return self.prompt_qwen(full_prompt)
+    
+    def generate_lyrics(self, description: str):
+        # Insert description into template
+        full_prompt = LYRICS_GENERATOR_PROMPT.format(description=description)
 
         # Run LLM inference and return that
         return self.prompt_qwen(full_prompt)
