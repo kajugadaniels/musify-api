@@ -6,6 +6,8 @@ import base64
 from pydantic import BaseModel
 import requests
 
+from api.prompts import PROMPT_GENERATOR_PROMPT
+
 app = modal.App("musify")
 
 image = (
@@ -100,6 +102,13 @@ class MusicGenServer:
         self.image_pipe = AutoPipelineForText2Image.from_pretrained(
             "stabilityai/sdxl-turbo", torch_dtype=torch.float16, variant="fp16", cache_dir="/.cache/huggingface")
         self.image_pipe.to("cuda")
+
+    def generate_prompt(self, description: str):
+        # Insert description into template
+        full_prompt = PROMPT_GENERATOR_PROMPT.format(user_prompt=description)
+
+        # Run LLM inference and return that
+        return self.prompt_qwen(full_prompt)
 
     @modal.fastapi_endpoint(method="POST")
     def generate(self) -> GenerateMusicResponse:
