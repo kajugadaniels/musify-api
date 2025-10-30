@@ -21,11 +21,20 @@ hf_volume = modal.Volume.from_name("qwen-hf-cache", create_if_missing=True)
 
 music_gen_secrets = modal.Secret.from_name("music-gen-secret")
 
-@app.function(secrets=[modal.Secret.from_name("music-gen-secret")])
-def function_test():
-    print("The Modal setup is working correctly.")
-    print(os.environ["test"])
+@app.cls(
+    image=image,
+    gpu="L40S",
+    volumes={"/models": model_volume, "/.cache/huggingface": hf_volume},
+    secrets=[music_gen_secrets],
+    scaledown_window=15
+)
+
+class MusicGenServer:
+    def load_model(self):
+        pass  # Model loading logic here
+
+@app.local_entrypoint()
 
 @app.local_entrypoint()
 def main():
-    function_test.remote()
+    pass
