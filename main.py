@@ -1,4 +1,6 @@
+import base64
 import os
+import uuid
 import modal
 
 app = modal.App("musify")
@@ -32,7 +34,7 @@ music_gen_secrets = modal.Secret.from_name("music-gen-secret")
 class MusicGenServer:
     @modal.enter()
     def load_model(self):
-        from acestep.pipeline_ace_step import ACEStepPipeline
+        from acestep.pipeline_ace_step import ACEStepPipeline # type: ignore
         from transformers import AutoModelForCausalLM, AutoTokenizer
         from diffusers import AutoPipelineForText2Image
         import torch
@@ -61,6 +63,28 @@ class MusicGenServer:
         self.image_pipe = AutoPipelineForText2Image.from_pretrained(
             "stabilityai/sdxl-turbo", torch_dtype=torch.float16, variant="fp16", cache_dir="/.cache/huggingface")
         self.image_pipe.to("cuda")
+
+    @modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)
+    def generate(self):
+        output_dir = "/tmp/outputs"
+        os.makedirs(output_dir, exist_ok=True)
+        output_path = os.path.join(output_dir, f"{uuid.uuid4()}.wav")
+
+        self.music_model(
+            prompt="electronic rap",
+            lyrics="[verse]\nWaves on the bass, pulsing in the speakers,\nTurn the dial up, we chasing six-figure features,\nGrinding on the beats, codes in the creases,\nDigital hustler, midnight in sneakers.\n\n[chorus]\nElectro vibes, hearts beat with the hum,\nUrban legends ride, we ain't ever numb,\nCircuits sparking live, tapping on the drum,\nLiving on the edge, never succumb.\n\n[verse]\nSynthesizers blaze, city lights a glow,\nRhythm in the haze, moving with the flow,\nSwagger on stage, energy to blow,\nFrom the blocks to the booth, you already know.\n\n[bridge]\nNight's electric, streets full of dreams,\nBass hits collective, bursting at seams,\nHustle perspective, all in the schemes,\nRise and reflective, ain't no in-betweens.\n\n[verse]\nVibin' with the crew, sync in the wire,\nGot the dance moves, fire in the attire,\nRhythm and blues, soul's our supplier,\nRun the digital zoo, higher and higher.\n\n[chorus]\nElectro vibes, hearts beat with the hum,\nUrban legends ride, we ain't ever numb,\nCircuits sparking live, tapping on the drum,\nLiving on the edge, never succumb.",
+            audio_duration=180,
+            infer_step=60,
+            guidance_scale=15,
+            save_path=output_path,
+        )
+
+        with open(output_path, "rb") as f:
+            audio_bytes = f.read()
+
+        audio_b64 = base64.b64encode(audio_bytes).decode("utf-8")
+
+        os.remove(output_path)
 
 @app.local_entrypoint()
 
