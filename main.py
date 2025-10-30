@@ -1,6 +1,7 @@
 from ast import List
 import os
 import uuid
+import boto3
 import modal
 import base64
 from pydantic import BaseModel
@@ -147,6 +148,23 @@ class MusicGenServer:
         categories = [cat.strip()
                       for cat in response_text.split(",") if cat.strip()]
         return categories
+
+    def generate_and_upload_to_s3(
+            self,
+            prompt: str,
+            lyrics: str,
+            instrumental: bool,
+            audio_duration: float,
+            infer_step: int,
+            guidance_scale: float,
+            seed: int,
+            description_for_categorization: str
+    ) -> GenerateMusicResponseS3:
+        final_lyrics = "[instrumental]" if instrumental else lyrics
+        print(f"Generated lyrics: \n{final_lyrics}")
+        print(f"Prompt: \n{prompt}")
+
+        #AWS S3 client
 
     @modal.fastapi_endpoint(method="POST")
     def generate(self) -> GenerateMusicResponse:
