@@ -30,8 +30,23 @@ music_gen_secrets = modal.Secret.from_name("music-gen-secret")
 )
 
 class MusicGenServer:
+    @modal.enter()
     def load_model(self):
-        pass  # Model loading logic here
+        from acestep.pipeline_ace_step import ACEStepPipeline
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from diffusers import AutoPipelineForText2Image
+        import torch
+
+        # Music Generation Model
+        self.music_model = ACEStepPipeline(
+            checkpoint_dir="/models",
+            dtype="bfloat16",
+            torch_compile=False,
+            cpu_offload=False,
+            overlapped_decode=False
+        )
+
+        
 
 @app.local_entrypoint()
 
