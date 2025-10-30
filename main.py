@@ -3,6 +3,7 @@ import uuid
 import modal
 import base64
 from pydantic import BaseModel
+import requests
 
 app = modal.App("musify")
 
@@ -96,4 +97,14 @@ class MusicGenServer:
 
 @app.local_entrypoint()
 def main():
-    pass
+    server = MusicGenServer()
+    endpoint_url = server.generate.get_web_url()
+
+    response = requests.post(endpoint_url)
+    response.raise_for_status()
+    result = GenerateMusicResponse(**response.json())
+
+    audio_bytes = base64.b64decode(result.audio_data)
+    output_function = "generated.wav"
+    with open(output_function, "wb") as f:
+        f.write(audio_bytes)
