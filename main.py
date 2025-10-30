@@ -9,7 +9,15 @@ app = modal.App("musify")
 
 image = (
     modal.Image.debian_slim()
-    .apt_install("git")
+    .apt_install(
+        "git",
+        "ffmpeg",
+        "libavcodec-dev",
+        "libavformat-dev",
+        "libavutil-dev",
+        "libswscale-dev",
+        "libswresample-dev"
+    )
     .pip_install_from_requirements("requirements.txt")
     .run_commands([
         "git clone https://github.com/ace-step/ACE-Step.git /tmp/ACE-Step",
@@ -35,7 +43,6 @@ class GenerateMusicResponse(BaseModel):
     secrets=[music_gen_secrets],
     scaledown_window=15
 )
-
 class MusicGenServer:
     @modal.enter()
     def load_model(self):
@@ -69,7 +76,7 @@ class MusicGenServer:
             "stabilityai/sdxl-turbo", torch_dtype=torch.float16, variant="fp16", cache_dir="/.cache/huggingface")
         self.image_pipe.to("cuda")
 
-    @modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)
+    @modal.fastapi_endpoint(method="POST")
     def generate(self) -> GenerateMusicResponse:
         output_dir = "/tmp/outputs"
         os.makedirs(output_dir, exist_ok=True)
@@ -94,8 +101,6 @@ class MusicGenServer:
         return GenerateMusicResponse(audio_data=audio_b64)
 
 @app.local_entrypoint()
-
-@app.local_entrypoint()
 def main():
     server = MusicGenServer()
     endpoint_url = server.generate.get_web_url()
@@ -105,6 +110,6 @@ def main():
     result = GenerateMusicResponse(**response.json())
 
     audio_bytes = base64.b64decode(result.audio_data)
-    output_function = "generated.wav"
-    with open(output_function, "wb") as f:
+    output_filename = "generated.wav"
+    with open(output_filename, "wb") as f:
         f.write(audio_bytes)
